@@ -1,30 +1,41 @@
-pragma circom 2.1.6;
+pragma circom 2.0.0;
 
-include "circomlib/poseidon.circom";
+include "circomlib/circuits/poseidon.circom";
 
 template UpdateBalance() {
-    // Public inputs (on-chain)
+    // === Public inputs ===
     signal input old_commitment;  // previous commitment hash
     signal input new_commitment;  // new commitment hash
     signal input nullifier;       // nullifier hash (public to prevent reuse)
 
     // Private inputs (kept by Alice)
-    signal private input secret;  // user secret / private key
-    signal private input old_balance;
-    signal private input spend_amount;
-    signal private input new_balance;
+    signal input secret;  // user secret / private key
+    signal input old_balance;
+    signal input spend_amount;
+    signal new_balance;
 
     // === Constraints ===
-
-    // Balance update check
     new_balance <== old_balance - spend_amount;
 
-    // Commitment generation (Poseidon hash)
-    signal computed_old_commitment <== Poseidon([secret, old_balance]);
-    signal computed_new_commitment <== Poseidon([secret, new_balance]);
-    signal computed_nullifier <== Poseidon([secret, old_commitment]);
+    // Poseidon hash for old commitment
+    component hash_old = Poseidon(2);
+    hash_old.inputs[0] <== secret;
+    hash_old.inputs[1] <== old_balance;
+    signal computed_old_commitment <== hash_old.out;
 
-    // Enforce equality between computed and provided commitments
+    // Poseidon hash for new commitment
+    component hash_new = Poseidon(2);
+    hash_new.inputs[0] <== secret;
+    hash_new.inputs[1] <== new_balance;
+    signal computed_new_commitment <== hash_new.out;
+
+    // Poseidon hash for nullifier
+    component hash_nullifier = Poseidon(2);
+    hash_nullifier.inputs[0] <== secret;
+    hash_nullifier.inputs[1] <== old_commitment;
+    signal computed_nullifier <== hash_nullifier.out;
+
+    // Enforce equality
     computed_old_commitment === old_commitment;
     computed_new_commitment === new_commitment;
     computed_nullifier === nullifier;
