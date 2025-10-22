@@ -1,7 +1,11 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.7.0 <0.9.0;
+
+import "./Verifier.sol";
 
 contract Privacy {
+    Verifier public verifier;
+
     struct Note {
         bytes32 commitment;
         bool nullified;
@@ -10,19 +14,36 @@ contract Privacy {
     mapping(bytes32 => bool) public nullifiers;
     mapping(address => bytes32[]) public commitments;
 
-    event NoteCreated(address indexed sender, bytes32 commitment);
-    event NoteClaimed(address indexed receiver, bytes32 commitment);
+    event NoteCreated(address indexed user, bytes32 commitment);
     event NoteNullified(bytes32 nullifier);
 
-    function submitOutgoingUpdate(bytes32 commitment, bytes32 nullifier) external {
-        require(!nullifiers[nullifier], "Already spent");
-        nullifiers[nullifier] = true;
-        commitments[msg.sender].push(commitment);
-        emit NoteCreated(msg.sender, commitment);
+    constructor(address _verifier) {
+        verifier = Verifier(_verifier);
     }
 
-    function claimNote(bytes32 commitment) external {
-        commitments[msg.sender].push(commitment);
-        emit NoteClaimed(msg.sender, commitment);
+    function submitProof(
+        bytes32 oldCommitment,
+        bytes32 newCommitment,
+        bytes32 nullifier,
+        Verifier.Proof memory proof
+    ) external {
+        require(!nullifiers[nullifier], "Nullifier already used");
+
+        // Verify zkSNARK proof
+        bool valid = verifier.verifyProof(
+            proof.a,
+            proof.b,
+            proof.c,
+            [uint256(oldCommitment), uint256(newCommitment), uint256(nullifier)]
+        );
+        require(valid, "Invalid proof");
+
+        // Mark nullifier as used
+        nullifiers[nullifier] = true;
+        emit NoteNullified(nullifier);
+
+        // Record new commitment
+        commitments[msg.sender].push(newCommitment);
+        emit NoteCreated(msg.sender, newCommitment);
     }
 }
