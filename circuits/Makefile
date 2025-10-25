@@ -5,9 +5,9 @@
 CIRCUIT = update_balance
 PTAU = 12
 
-.PHONY: all compile setup contract clean proof verify
+.PHONY: all compile setup contract clean proof verify transfer
 
-all: compile setup contract
+all: compile setup contract proof transfer
 
 compile:
 	@echo "Compiling circuit..."
@@ -36,6 +36,12 @@ proof:
 verify:
 	@echo "Verifying proof..."
 	snarkjs groth16 verify $(CIRCUIT).vkey.json proofs/public.json proofs/proof.json
+
+transfer:
+	@echo "Transferring public, proof and other files to contract directory..."
+	cp proofs/public.json ../contract/proofs/
+	cp proofs/proof.json ../contract/proofs/
+	
 
 contract:
 	@echo "Generating Solidity verifier..."
