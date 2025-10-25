@@ -56,7 +56,7 @@ template UpdateBalance() {
     hash_amount.inputs[0] <== spend_amount;
     hash_amount.inputs[1] <== randomness;
     amount_hash <== hash_amount.out;
-    
+
     signal output nullifier;
     component hash_nullifier = Poseidon(5);
     hash_nullifier.inputs[0] <== public_balance;
@@ -67,5 +67,5 @@ template UpdateBalance() {
     nullifier <== hash_nullifier.out;
 }
 
-component main = UpdateBalance();
+component main{public[public_balance, old_commitment, new_commitment]} = UpdateBalance();
 
