@@ -1,6 +1,7 @@
 pragma circom 2.0.0;
 
 include "circomlib/circuits/poseidon.circom";
+include "circomlib/circuits/comparators.circom";
 
 template UpdateBalance() {
     // === Public inputs ===
@@ -21,7 +22,7 @@ template UpdateBalance() {
     available_balance <== public_balance + private_balance;
 
     // enforce spend_amount < available_balance
-    component lt = LessThan(254);
+    component lt = LessThan(250);
     lt.in[0] <== spend_amount;
     lt.in[1] <== available_balance;
     lt.out === 1;
@@ -57,7 +58,7 @@ template UpdateBalance() {
     amount_hash <== hash_amount.out;
     
     signal output nullifier;
-    component hash_nullifier = Poseidon(2);
+    component hash_nullifier = Poseidon(5);
     hash_nullifier.inputs[0] <== public_balance;
     hash_nullifier.inputs[1] <== private_balance;
     hash_nullifier.inputs[2] <== spend_amount;
