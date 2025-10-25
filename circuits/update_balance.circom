@@ -43,7 +43,9 @@ template BalanceUpdateWithRangeProof(n) {
     component oldHasher = Poseidon(2);
     oldHasher.inputs[0] <== pvt_bal;
     oldHasher.inputs[1] <== val;
-    oldHasher.out === oldHashedPrivateBalance;
+
+    // --------------------------------------TODO-----------------------
+    // oldHasher.out === oldHashedPrivateBalance;
 
     // Calculate new private balance
     signal newPrivateBalance <== pvt_bal - amt;

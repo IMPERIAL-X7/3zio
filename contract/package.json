@@ -19,5 +19,10 @@
     "hardhat": "^3.0.8",
     "typescript": "~5.8.3",
     "viem": "^2.38.3"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "chai": "^6.2.0",
+    "snarkjs": "^0.7.5"
   }
 }
