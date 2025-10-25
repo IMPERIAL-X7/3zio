@@ -15,6 +15,12 @@ struct proof_data_A {
     uint256 curr_pub_balance;
 }
 
+struct proof_data_B{
+    uint256 old_pub_balance;
+    uint256 old_priv_balance;
+    uint256 updated_pub_balance;
+}
+
 struct Proof{
     uint256[2] A;
     uint256[2][2] B;

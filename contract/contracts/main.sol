@@ -32,21 +32,23 @@ contract Main_Contract{
         _;        
     }
 
+    function getbalance(address user) external view returns (balance_data memory) {
+        return balances[user];
+    }
+
     // internal updater used by both the owner and the controller path
     function _setbalance(address user, uint256 pub_balance, uint256 priv_balance) internal {
         balances[user] = balance_data(pub_balance, priv_balance);
     }
 
     function burner(address user, proof_data_A calldata info) external payable onlyBurner{
-        require(info.valid_rp, "Invalid range proof");
-        require(info.curr_pub_balance == balances[user].pub_balance, "Invalid current public balance");
-        require(info.curr_priv_balance == balances[user].priv_balance, "Invalid private balances");
         _setbalance(user, info.curr_pub_balance, info.new_priv_balance);
         unminted_proofs[info.nullifier] = true;
     }
 
-    funtion minter()
-    
-
-
+    function minter(address user, proof_data_A calldata info) external payable onlyMinter{
+        require(unminted_proofs[info.nullifier], "Proof already used");
+        _setbalance(user, info.curr_pub_balance, info.new_priv_balance);
+        unminted_proofs[info.nullifier] = false;
+    }
 }
