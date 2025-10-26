@@ -1,84 +1,80 @@
-# 3zio
- A privacy-preserving protocol for transferring funds. It enables atomic private transfers between users without revealing the transferred amount, while ensuring integrity and preventing double-spends.
+# EZIO
 
----
+Private, unlinkable fund transfers powered by zero-knowledge proofs. 3zio enables confidential payments where the transferred amount and sender–receiver linkage remain hidden, while correctness and one‑time spend are enforced on-chain.
 
-## Core Protocol
+<p>
+  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+  <img alt="Status" src="https://img.shields.io/badge/status-Research%2FPOC-purple">
+</p>
 
-### short summary
-- `noteC` binds Alice’s private-balance deduction to the note Bob can claim
-- `proof_A` proves Alice deducted `n` and posted `noteC` honestly
-- `proof_B` proves only recipient (holder of `pk_B`) can claim
-- `nullifier` ensures one-time use of notes
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;justify-content:space-between">
+  <img src="./assets/frontend_1.jpg" alt="App screenshot 1" style="width:48%;max-width:450px;height:auto;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+  <img src="./assets/frontend_2.jpg" alt="App screenshot 2" style="width:48%;max-width:450px;height:auto;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+</div>
 
+## Why 3zio ?
+- Built on a modified EIP‑7503 (zk wormhole) flow
+- No sender/receiver linkage is preserved
+- No linkability through IP or timings
+- Transferred amount remains private
+- Nullifier prevents double spends
 
+## How it works
 
-### Phase 0: Preconditions
-- Alice & Bob have accounts with:
-  - `publicBalance`
-  - `PrivateCommitment`
-- Bob has encryption key `pk_B`
-- Alice ensures `Pb[A] + Pr[A] ≥ n`
+![Core protocol](./assets/protocol.jpg)
 
-### Phase 1: Alice Creates Note & Posts Commitment
+At a glance:
 
-**Alice (off-chain):**
-- Creates `note = (n, pk_B, salt)`
-- Computes:
-  - `noteC = Commit(n, pk_B, salt)`
-  - `C_A' = Commit(Pr_A - n, rA')`
-  - Optional: `ct = Enc(pk_B, note || meta)`, `hct = Hash(ct)`
-- Generates `proof_A` proving:
-  - Correct commitments
-  - `noteC` is well-formed
-  - Non-negative post-transfer balance
+- `noteC` binds Alice’s private balance deduction to the note Bob can later claim
+- `proof_A` proves Alice honestly deducted `n` and posted `noteC`
+- `proof_B` proves only the intended recipient (holder of `pk_B`) can claim
+- A `nullifier` guarantees each note can be used only once
 
-**Alice (on-chain):**
-- Posts:
-  - `proof_A`
-  - `oldCommit = C_A`
-  - `newCommit = C_A'`
-  - `noteCommit = noteC`
-  - `hct` (optional ciphertext pointer)
-- Contract:
-  - Verifies `proof_A`
-  - Updates Alice’s commitment
-  - Records `noteC` in registry or emits a `NoteCreated` event
+## Project layout
 
+- `./ezio` – main frontend
+- `./contract` – Solidity smart contracts (Hardhat v3)
+- `./contract_v2` – next‑gen experiments
+- `./circuits` – Circom circuits for zk proofs
 
-### Phase 2: Alice Sends Ciphertext to Bob (Off-Chain)
+## Quickstart
 
-- Alice sends `ct` to Bob using a secure channel (e.g., wallet message, IPFS, Signal)
-- Bob decrypts to get `note` and verifies that `noteC = Commit(n, pk_B, salt)` matches the on-chain `noteC`
+Below are the minimal steps to compile and check the Circom circuits. Frontend and contracts have their own standard workflows; see the respective folders for details.
 
+### Circuits
 
-### Phase 3: Bob Claims the Note
+Compile circuits:
 
-**Bob (off-chain):**
-- Decrypts `ct` to get `note`
-- Builds `proof_B` proving:
-  - Knowledge of `n`, `salt`, `sk_B`
-  - Correct opening of `noteC`
-  - Ownership of `pk_B`
-  - Updated commitment `C_B' = Commit(Pr_B + n, rB')`
-  - Optional: outputs nullifier `N`
+```bash
+cd circuits
+make
+```
 
-**Bob (on-chain):**
-- Posts:
-  - `proof_B`
-  - `noteCommit = noteC`
-  - `oldCommit = C_B`
-  - `newCommit = C_B'`
-  - `nullifier = N`
-- Contract:
-  - Verifies `proof_B`
-  - Ensures note was not claimed before (`!consumed`)
-  - Marks note as claimed
-  - Updates Bob’s commitment
-  - Stores used `nullifier`
+Verify constraints/proofs (where applicable):
 
-## some failure modes
-- what if bob didnt claim the proof, (use refundable bonds)
-- bob should not be able to claim non existing proofs, created by himself
-- linkability, reveals IP/timming whuch can compromise with timmings.
+```bash
+make verify
+```
 
+### Frontend (ezio)
+
+The `ezio` app is the primary UI. Typical steps are: install deps, set env vars, and start the dev server. See `./ezio` for details.
+
+### Contracts
+
+Contracts live in `./contract` (with additional work in `./contract_v2`). Use a modern Node.js + Hardhat toolchain. See the folders for tasks such as build, test, and deploy.
+
+## Security properties
+
+- Privacy: amount, sender, and receiver are not linkable on‑chain
+- Integrity: proofs enforce correct balance updates
+- Unlinkability: network‑level correlation reduced (no timing/IP linkage in protocol design)
+- One‑time spend: nullifiers prevent note reuse
+
+## Contributing
+
+Issues and PRs are welcome. If you’re proposing a protocol change, please include a short rationale and any security considerations.
+
+## License
+
+MIT © 3zio contributors
