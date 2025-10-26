@@ -41,14 +41,14 @@ contract Main_Contract{
         balances[user] = balance_data(pub_balance, priv_balance);
     }
 
-    function burner(address user, proof_data_A calldata info) external payable onlyBurner{
-        _setbalance(user, info.curr_pub_balance, info.new_priv_balance);
-        unminted_proofs[info.nullifier] = true;
+    function burner(address user, uint256 curr_pub_balance, uint256 new_priv_balance, uint256 nullifier) external payable onlyBurner{
+        _setbalance(user, curr_pub_balance, new_priv_balance);
+        unminted_proofs[nullifier] = true;
     }
 
-    function minter(address user, proof_data_A calldata info) external payable onlyMinter{
-        require(unminted_proofs[info.nullifier], "Proof already used");
-        _setbalance(user, info.curr_pub_balance, info.new_priv_balance);
-        unminted_proofs[info.nullifier] = false;
+    function minter(address user, uint256 curr_pub_balance, uint256 new_priv_balance, uint256 nullifier) external payable onlyMinter{
+        require(unminted_proofs[nullifier], "Proof already used");
+        _setbalance(user, curr_pub_balance, new_priv_balance);
+        unminted_proofs[nullifier] = false;
     }
 }

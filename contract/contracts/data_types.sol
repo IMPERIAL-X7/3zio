@@ -25,5 +25,12 @@ struct Proof{
     uint256[2] A;
     uint256[2][2] B;
     uint256[2] C;
-    uint256[] _publicSignals;
+    uint256[] _publicSignals; // pub. bal, old commitment, new commitment, amt_r_hash, nullifier
+}
+
+struct ProofB{
+    uint256[2] A;
+    uint256[2][2] B;
+    uint256[2] C;
+    uint256[] _publicSignals; // old commitment, new commitment, amt_r_hash (3 signals for Circuit B)
 }

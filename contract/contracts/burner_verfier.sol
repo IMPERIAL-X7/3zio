@@ -14,15 +14,24 @@ contract Burner_Verifier {
         verifier = Groth16Verifier(_verifier);
     }
 
-    function BurnerVerifier(bytes calldata proof, proof_data_A calldata info) external payable {
+    function BurnerVerifier(Proof calldata proof) external payable {
         // Step 1: verify proof
-        bool verified = verifier.verifyProof(proof);
+        // Verifier expects: uint[2] _pA, uint[2][2] _pB, uint[2] _pC, uint[5] _pubSignals
+        bool verified = verifier.verifyProof(
+            proof.A,
+            proof.B,
+            proof.C,
+            [proof._publicSignals[0], proof._publicSignals[1], proof._publicSignals[2], 
+             proof._publicSignals[3], proof._publicSignals[4]]
+        );
         require(verified, "Invalid proof");
-        require(info.valid_rp, "Invalid range proof");
-        balance_data balances = real_contract.getbalance(msg.sender);
-        require(info.curr_pub_balance == balances[msg.sender].pub_balance, "Invalid current public balance");
-        require(info.curr_priv_balance == balances[msg.sender].priv_balance, "Invalid private balances");
-        // Step 2: deposit into SafeVault
-        real_contract.burner(msg.sender, parseProof(proof));
+        // require(info.valid_rp, "Invalid range proof");
+        
+        balance_data memory balances = real_contract.getbalance(msg.sender);
+        require(proof._publicSignals[0] == balances.pub_balance, "Invalid current public balance");
+        require(proof._publicSignals[1] == balances.priv_balance, "Invalid current private balances");
+
+        // Step 2: update balance in Main_Contract
+        real_contract.burner(msg.sender, proof._publicSignals[0], proof._publicSignals[2], proof._publicSignals[4]);
     }
 }
