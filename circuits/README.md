@@ -1,129 +1,77 @@
-# Zero-Knowledge Circuits - 3ZIO Bridge# Circuits 
+# Circuits
 
-directory to store all the circuits file 
+This folder contains the Circom circuits that generate zk-SNARK proofs for the 3zio private transfer protocol.
 
-This folder contains the Circom circuits that generate zk-SNARK proofs for the 3ZIO cross-chain bridge.
+---
 
-## intial setup
+## 📁 Folder Layout
 
-## 📁 Circuit Structure- install circom [installation setup](https://docs.circom.io/getting-started/installation/)
-
-- basic libraries
-
-``````bash
-
-circuits/npm init
-
-├── update_balance.circom     # Circuit A - Balance state transitionsnpm install -g snarkjs
-
-├── proofB.circom            # Circuit B - Amount validationnpm install circomlib
-
-├── update_balance_js/       # Compiled witness generator (Circuit A)```
-
+```bash
+circuits/
+├── update_balance.circom     # Circuit A - Balance state transitions
+├── proofB.circom             # Circuit B - Amount validation
+├── update_balance_js/        # Compiled witness generator (Circuit A)
 │   ├── update_balance.wasm
-
-│   ├── generate_witness.js## compilation 
-
+│   ├── generate_witness.js
 │   └── witness_calculator.js
-
-├── proofB_js/               # Compiled witness generator (Circuit B)### Circuit A: update_balance.circom (Burner/Sender Side)
-
-│   ├── proofB.wasm**compilation**
-
-│   ├── generate_witness.js```bash 
-
-│   └── witness_calculator.js# Compile circuit
-
-├── update_balance_cpp/      # C++ witness generator (Circuit A)circom update_balance.circom --r1cs --wasm --sym
-
-├── *.r1cs                   # Constraint systems
-
-├── *.sym                    # Debug symbols# Generate proving key (Powers of Tau)
-
-├── *.zkey                   # Proving keyssnarkjs powersoftau new bn128 12 pot12_0000.ptau -v
-
-├── *.vkey.json              # Verification keyssnarkjs powersoftau contribute pot12_0000.ptau pot12_final.ptau --name="First contribution"
-
-└── *.ptau                   # Powers of Tau ceremony files
-
-```# stage2 generation power of tau
-
-snarkjs powersoftau prepare phase2 pot12_final.ptau pot12_final_phase2.ptau
-
----snarkjs groth16 setup update_balance.r1cs pot12_final_phase2.ptau update_balance_0000.zkey
-
-
-
-## 🔐 Circuit Overview# Generate proving/verifying keys
-
-snarkjs zkey export verificationkey update_balance_0000.zkey update_balance.vkey.json
-
-### Circuit A: `update_balance.circom````
-
-**Verifier generation**
-
-**Purpose:** Proves correct balance state transitions for burn/mint operations.```bash
-
-snarkjs zkey export solidityverifier update_balance_0000.zkey ../contract/contracts/Verifier.sol
-
-**Inputs:**```
-
-```circom
-
-signal input pub_balance;           // Current public balance### Circuit B: proofB.circom (Minter/Receiver Side)
-
-signal input priv_balance;          // Current private balance**compilation**
-
-signal input new_priv_balance;      // New private balance after operation```bash 
-
-signal input r;                     // Randomness for old commitment# Compile circuit
-
-signal input r_new;                 // Randomness for new commitmentcircom proofB.circom --r1cs --wasm --sym
-
-signal input secret;                // User secret (nullifier preimage)
-
-```# Generate proving key (Powers of Tau) - reuse if already generated
-
-# snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
-
-**Outputs (5 public signals):**# snarkjs powersoftau contribute pot12_0000.ptau pot12_final.ptau --name="First contribution"
-
-```circom# snarkjs powersoftau prepare phase2 pot12_final.ptau pot12_final_phase2.ptau
-
-signal output old_commitment;       // Commit(priv_balance, r)
-
-signal output new_commitment;       // Commit(new_priv_balance, r_new)# stage2 generation for proofB
-
-signal output curr_pub_balance;     // = pub_balancesnarkjs groth16 setup proofB.r1cs pot12_final_phase2.ptau proofB_0000.zkey
-
-signal output new_priv_balance_out; // = new_priv_balance
-
-signal output nullifier;            // Hash(secret)# Generate proving/verifying keys
-
-```snarkjs zkey export verificationkey proofB_0000.zkey proofB.vkey.json
-
+├── proofB_js/                # Compiled witness generator (Circuit B)
+│   ├── proofB.wasm
+│   ├── generate_witness.js
+│   └── witness_calculator.js
+├── update_balance_cpp/       # C++ witness generator (Circuit A)
+├── *.r1cs                    # Constraint systems
+├── *.sym                     # Debug symbols
+├── *.zkey                    # Proving keys
+├── *.vkey.json               # Verification keys
+└── *.ptau                    # Powers of Tau ceremony files
 ```
 
-**Constraints:****Verifier generation**
+---
 
-- Old commitment = Poseidon(priv_balance, r)```bash
+## 🔐 Circuit Overview
 
-- New commitment = Poseidon(new_priv_balance, r_new)snarkjs zkey export solidityverifier proofB_0000.zkey ../contract/contracts/VerifierB.sol
+### Circuit A: `update_balance.circom` (Burner/Sender Side)
 
-- Nullifier = Poseidon(secret)```
+**Purpose:** Proves correct balance state transitions for burn/mint operations.
 
+**Inputs:**
+
+```circom
+signal input pub_balance;           // Current public balance
+signal input priv_balance;          // Current private balance
+signal input new_priv_balance;      // New private balance after operation
+signal input r;                     // Randomness for old commitment
+signal input r_new;                 // Randomness for new commitment
+signal input secret;                // User secret (nullifier preimage)
+```
+
+**Outputs (5 public signals):**
+
+```circom
+signal output old_commitment;       // Commit(priv_balance, r)
+signal output new_commitment;       // Commit(new_priv_balance, r_new)
+signal output curr_pub_balance;     // = pub_balance
+signal output new_priv_balance_out; // = new_priv_balance
+signal output nullifier;            // Hash(secret)
+```
+
+**Constraints:**
+
+- Old commitment = Poseidon(priv_balance, r)
+- New commitment = Poseidon(new_priv_balance, r_new)
+- Nullifier = Poseidon(secret)
 - All values properly constrained
-
 
 **Used by:** `Groth16Verifier` (deployed on-chain)
 
 ---
 
-### Circuit B: `proofB.circom`
+### Circuit B: `proofB.circom` (Minter/Receiver Side)
 
 **Purpose:** Validates transfer amounts using commitment scheme.
 
 **Inputs:**
+
 ```circom
 signal input priv_balance;          // Current private balance
 signal input new_priv_balance;      // New private balance
@@ -133,6 +81,7 @@ signal input amount;                // Transfer amount
 ```
 
 **Outputs (3 public signals):**
+
 ```circom
 signal output old_commitment;       // Commit(priv_balance, r)
 signal output new_commitment;       // Commit(new_priv_balance, r_new)
@@ -140,6 +89,7 @@ signal output amount_hash;          // Poseidon(amount)
 ```
 
 **Constraints:**
+
 - Old commitment = Poseidon(priv_balance, r)
 - New commitment = Poseidon(new_priv_balance, r_new)
 - Amount hash = Poseidon(amount)
@@ -153,8 +103,10 @@ signal output amount_hash;          // Poseidon(amount)
 
 ### Prerequisites
 
+Install Circom: [installation guide](https://docs.circom.io/getting-started/installation/)
+
 ```bash
-# Install Circom
+# Install Circom (via Rust)
 curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
 cargo install --git https://github.com/iden3/circom.git circom
 
@@ -164,8 +116,9 @@ circom --version  # Should show 2.0.0 or higher
 # Install snarkJS
 npm install -g snarkjs
 
-# Install local dependencies
-npm install
+# Initialize project (if needed)
+npm init -y
+npm install circomlib
 ```
 
 ---
@@ -219,22 +172,34 @@ The circuits use a Powers of Tau ceremony for the trusted setup. Files are alrea
 
 ### To regenerate (if needed):
 
+**Circuit A:**
+
 ```bash
-# Start Powers of Tau ceremony
+# Start Powers of Tau ceremony (only once)
 snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
 
 # Contribute to ceremony
 snarkjs powersoftau contribute pot12_0000.ptau pot12_final.ptau --name="First contribution" -v
 
-# Phase 2 (Circuit A)
+# Prepare phase 2
 snarkjs powersoftau prepare phase2 pot12_final.ptau pot12_final_phase2.ptau -v
+
+# Setup circuit A
 snarkjs groth16 setup update_balance.r1cs pot12_final_phase2.ptau update_balance_0000.zkey
 
-# Phase 2 (Circuit B)
+# Export verification key
+snarkjs zkey export verificationkey update_balance_0000.zkey update_balance.vkey.json
+```
+
+**Circuit B:**
+
+```bash
+# Reuse Powers of Tau from Circuit A
+
+# Setup circuit B
 snarkjs groth16 setup proofB.r1cs pot12_final_phase2.ptau proofB_0000.zkey
 
-# Export verification keys
-snarkjs zkey export verificationkey update_balance_0000.zkey update_balance.vkey.json
+# Export verification key
 snarkjs zkey export verificationkey proofB_0000.zkey proofB.vkey.json
 ```
 
@@ -345,7 +310,7 @@ Public Outputs: 3
 Main Component: ProofB
 ```
 
-*Use `snarkjs r1cs info <circuit>.r1cs` for exact numbers.*
+_Use `snarkjs r1cs info <circuit>.r1cs` for exact numbers._
 
 ---
 
@@ -475,6 +440,7 @@ npx hardhat compile
 ## 📞 Support
 
 For circuit-specific questions:
+
 1. Review circuit code (`*.circom` files)
 2. Check snarkJS documentation
 3. Examine constraint files (`*.r1cs`)

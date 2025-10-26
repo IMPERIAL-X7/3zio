@@ -198,7 +198,7 @@ All viewable on [Sepolia Etherscan](https://sepolia.etherscan.io/)
 - **Hash Function:** Poseidon
 - **Framework:** Hardhat 3.0.9
 - **Network:** Ethereum Sepolia Testnet
-- **Frontend:** Next.js 15 (In Development)
+- **Frontend:** Next.js 15
 
 ---
 

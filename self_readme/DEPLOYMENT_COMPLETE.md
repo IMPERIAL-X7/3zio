@@ -135,39 +135,7 @@ All contracts are:
 
 ---
 
-## 📝 Next Steps (Optional)
-
-1. **Generate Real ZK Proofs:**
-   ```bash
-   cd circuits
-   # Generate proof for Circuit A
-   node proofs/generate-proof-a.js
-   
-   # Generate proof for Circuit B  
-   node proofs/generate-proof-b.js
-   ```
-
-2. **Test with Real Proofs:**
-   - Call `Burner_Verifier.BurnerVerifier(proof)` with real proof
-   - Call `Minter_Verifier.Minter_VerifierVerifier(proofA, proofB)` with real proofs
-
-3. **Verify Contracts on Etherscan:** (optional for visibility)
-   ```bash
-   npx hardhat verify --network sepolia <contract_address>
-   ```
-
----
-
-## 📞 Support
-
-For questions or issues:
-- Check contract code in `/contract/contracts/`
-- Review circuit code in `/circuits/`
-- Test scripts in `/contract/scripts/`
-
----
-
-**Deployed:** January 2025  
+**Deployed:** October 2025  
 **Network:** Sepolia Testnet (Chain ID: 11155111)  
 **Solidity Version:** 0.8.28  
 **Framework:** Hardhat 3.0.9 + Circom 2.0.0
