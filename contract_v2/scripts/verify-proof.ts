@@ -1,32 +1,59 @@
 import fs from "fs";
+import { network } from "hardhat";
 
-import { expect } from 'chai'
-import hre from 'hardhat'
-import "@nomicfoundation/hardhat-ethers";
-
-
+const { ethers } = await network.connect({
+  network: "hardhatOp",
+  chainType: "op",
+});
 
 async function main() {
+  console.log("Verifying proof on OP chain");
+
   // === Load verifier ===
-  const verifierAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-  const verifier = await hre.ethers.getContractAt("Groth16Verifier", verifierAddress);
+  const verifierAddress = "0xaddress";
+  const verifier = await ethers.getContractAt(
+    "Groth16Verifier",
+    verifierAddress
+  );
+
+  console.log("Verifier contract loaded at:", verifierAddress);
 
   // === Load proof and public input ===
-  const proof = JSON.parse(fs.readFileSync("./proof.json", "utf8"));
-  const publicSignals = JSON.parse(fs.readFileSync("./public.json", "utf8"));
+  const proofPath = "./proofs/proof.json";
+  const publicPath = "./proofs/public.json";
+
+  if (!fs.existsSync(proofPath) || !fs.existsSync(publicPath)) {
+    throw new Error(`Proof files not found:\n${proofPath}\n${publicPath}`);
+  }
+
+  const proof = JSON.parse(fs.readFileSync(proofPath, "utf8"));
+  const publicSignals = JSON.parse(fs.readFileSync(publicPath, "utf8"));
+
+  console.log("Proof loaded successfully");
+  console.log("Public signals:", publicSignals);
 
   // === Format proof components ===
-  const a = proof.pi_a.slice(0, 2);
-  const b = [proof.pi_b[0].slice(0, 2), proof.pi_b[1].slice(0, 2)];
-  const c = proof.pi_c.slice(0, 2);
+  const a: [string, string] = [proof.pi_a[0], proof.pi_a[1]];
+  const b: [[string, string], [string, string]] = [
+    [proof.pi_b[0][0], proof.pi_b[0][1]],
+    [proof.pi_b[1][0], proof.pi_b[1][1]],
+  ];
+  const c: [string, string] = [proof.pi_c[0], proof.pi_c[1]];
 
   // === Call contract ===
+  console.log("Calling verifyProof...");
   const isValid = await verifier.verifyProof(a, b, c, publicSignals);
 
-  console.log(`✅ Proof verification result: ${isValid}`);
+  console.log(`\n✅ Proof verification result: ${isValid}`);
+
+  if (isValid) {
+    console.log("🎉 Proof is VALID!");
+  } else {
+    console.log("❌ Proof is INVALID!");
+  }
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error("Error:", err);
   process.exit(1);
 });

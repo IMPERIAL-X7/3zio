@@ -1,44 +1,32 @@
-import { ethers } from "hardhat";
 import fs from "fs";
-import path from "path";
 
-// Load your generated proof and public signals
-const proofPath = path.join(__dirname, "../proofs/proof.json");
-const publicPath = path.join(__dirname, "../proofs/public.json");
+import { expect } from 'chai'
+import hre from 'hardhat'
+import "@nomicfoundation/hardhat-ethers";
 
-const proofData = JSON.parse(fs.readFileSync(proofPath, "utf8"));
-const pubSignals = JSON.parse(fs.readFileSync(publicPath, "utf8"));
+
 
 async function main() {
-  const [deployer] = await ethers.getSigners();
-  console.log("Using account:", deployer.address);
+  // === Load verifier ===
+  const verifierAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+  const verifier = await hre.ethers.getContractAt("Groth16Verifier", verifierAddress);
 
-  // Deploy the verifier
-  const Verifier = await ethers.getContractFactory("Groth16Verifier");
-  const verifier = await Verifier.deploy();
-  await verifier.waitForDeployment();
+  // === Load proof and public input ===
+  const proof = JSON.parse(fs.readFileSync("./proof.json", "utf8"));
+  const publicSignals = JSON.parse(fs.readFileSync("./public.json", "utf8"));
 
-  console.log("Verifier deployed at:", await verifier.getAddress());
+  // === Format proof components ===
+  const a = proof.pi_a.slice(0, 2);
+  const b = [proof.pi_b[0].slice(0, 2), proof.pi_b[1].slice(0, 2)];
+  const c = proof.pi_c.slice(0, 2);
 
-  // Format the proof data
-  const { pi_a, pi_b, pi_c } = proofData.proof;
+  // === Call contract ===
+  const isValid = await verifier.verifyProof(a, b, c, publicSignals);
 
-  const proofA = [pi_a[0], pi_a[1]];
-  const proofB = [
-    [pi_b[0][1], pi_b[0][0]],
-    [pi_b[1][1], pi_b[1][0]],
-  ];
-  const proofC = [pi_c[0], pi_c[1]];
-
-  // Convert public signals to BigInt array
-  const pubInputs = pubSignals.map((x: string) => BigInt(x));
-
-  console.log("Verifying...");
-  const verified = await verifier.verifyProof(proofA, proofB, proofC, pubInputs);
-  console.log("Verification result:", verified);
+  console.log(`✅ Proof verification result: ${isValid}`);
 }
 
-main().catch((error) => {
-  console.error(error);
+main().catch((err) => {
+  console.error(err);
   process.exit(1);
 });
