@@ -55,11 +55,17 @@ make verify
 ### Frontend (ezio)
 
 The `ezio` app is the primary UI. Typical steps are: install deps, set env vars, and start the dev server.
+
+**Nexus** handles user authentication and identity management, while **PayPal USD (PYUSD)** enables stable, on-chain payments verified through ZK proofs for secure, compliant transactions.
+[For more info on how nexus and PayUSD are used](./ezio/README.md)
+
 ```bash
 cd ezio
+npm install -g pnpm
 pnpm install
 pnpm dev
 ```
+you might need to run `pnpm approve-build` approve all of them
 
 ### Contracts
 Contracts live in `./contract` (with additional work in `./contract_v2`). Use a modern Hardhat toolchain. See the folders for tasks such as build, test, and deploy.
