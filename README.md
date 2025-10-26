@@ -52,7 +52,7 @@ Verify constraints/proofs (where applicable):
 make verify
 ```
 
-### Frontend (ezio)
+## Frontend (ezio)
 
 The `ezio` app is the primary UI. Typical steps are: install deps, set env vars, and start the dev server.
 
@@ -67,7 +67,7 @@ pnpm dev
 ```
 you might need to run `pnpm approve-build` approve all of them
 
-### Contracts
+## Contracts
 Contracts live in `./contract` (with additional work in `./contract_v2`). Use a modern Hardhat toolchain. See the folders for tasks such as build, test, and deploy.
 ```bash
 cd contracts
