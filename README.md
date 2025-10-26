@@ -1,84 +1,202 @@
-# 3zio
- A privacy-preserving protocol for transferring funds. It enables atomic private transfers between users without revealing the transferred amount, while ensuring integrity and preventing double-spends.
+# EZIO
+
+<p>
+  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+  <img alt="Status" src="https://img.shields.io/badge/status-Research%2FPOC-purple">
+</p>
+
+Private, **unlinkable** fund transfers powered by **zero-knowledge proofs**. 3zio enables confidential payments where the transferred amount and sender–receiver linkage remain hidden, while correctness and one‑time spend are enforced on-chain.
+
+Users maintain two balance types:
+- **Public Balance:** Visible on-chain (like normal ERC20)
+- **Private Balance:** Hidden via Poseidon hash commitments
+
+
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;justify-content:space-between">
+  <img src="./assets/frontend_1.jpg" alt="App screenshot 1" style="width:48%;max-width:450px;height:auto;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+  <img src="./assets/frontend_2.jpg" alt="App screenshot 2" style="width:48%;max-width:450px;height:auto;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+</div>
+
+## Why 3zio ?
+- Built on a modified version of EIP‑7503 (zk wormhole) flow
+- No sender/receiver linkage is preserved
+- No linkability through IP or timings
+- Transferred amount remains private
+- Nullifier prevents double spends
+
+## How it works
+
+![Core protocol](./assets/protocol.jpg)
+
+At a glance:
+
+- `noteC` binds Alice’s private balance deduction to the note Bob can later claim
+- `proof_A` proves Alice honestly deducted `n` and posted `noteC`
+- `proof_B` proves only the intended recipient (holder of `pk_B`) can claim
+- A `nullifier` guarantees each note can be used only once, No double spend/transfer.
+
+## Project layout
+
+- `./ezio` – main frontend
+- `./contract` – Solidity smart contracts (Hardhat v3)
+- `./circuits` – Circom circuits for zk proofs
+
+## Quickstart
+Below are the minimal steps to compile and check the Circom circuits. Frontend and contracts have their own standard workflows; see the respective folders for details.
+
+
+## Frontend (ezio)
+
+The `ezio` app is the primary UI. Typical steps are: install deps, set env vars, and start the dev server.
+
+**Nexus** handles user authentication and identity management, while **PayPal USD (PYUSD)** enables stable, on-chain payments verified through ZK proofs for secure, compliant transactions.
+[For more info on how nexus and PayUSD are used](./ezio/README.md)
+
+```bash
+cd ezio
+npm install -g pnpm
+pnpm install
+pnpm dev
+```
+you might need to run `pnpm approve-build` approve all of them
+
+## Contracts
+Contracts live in `./contract` (with additional work in `./contract_v2`). Use a modern Hardhat toolchain. See the folders for tasks such as build, test, and deploy.
+
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **Main_Contract** | `0xb21AD25eC6d65d92C998c76a22b3f5Dce2F9F7CB` | Core balance management with ZK privacy |
+| **Groth16Verifier** | `0x99923435d5774c962dC5c604Ee9970748E9FD0E2` | Verifier for Circuit A (update_balance.circom) |
+| **Groth16VerifierB** | `0x777B6C1bB0608621f8d2AAd364890267A4488Ce1` | Verifier for Circuit B (proofB.circom) |
+| **Burner_Verifier** | `0x8Da48CfBCFC981c0f4342D8c3e22cd5A5cB41eCE` | Source chain burn with ZK verification |
+| **Minter_Verifier** | `0x78CAb97E087b7696eE31e0cdDCA25AcaA568C237` | Destination chain mint with dual ZK verification |
+
+**Owner Address:** `0xFb93a8DcD5edc3FB6Cb34d77C6811835756c99A0`
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Main_Contract                          │
+│  • Public/Private Balance Management                        │
+│  • Nullifier Tracking (double-spend prevention)            │
+│  • Owner: 0xFb93a8DcD5edc3FB6Cb34d77C6811835756c99A0       │
+└───────────────┬──────────────────────┬─────────────────────┘
+                │                      │
+        ┌───────▼─────┐        ┌───────▼─────┐
+        │  Burn Path  │        │  Mint Path  │
+        └───────┬─────┘        └───────┬─────┘
+                │                      │
+    ┌───────────▼───────────┐  ┌──────▼──────────────────┐
+    │  Burner_Verifier      │  │  Minter_Verifier        │
+    │  • Circuit A Proof    │  │  • Circuit A + B Proofs │
+    │  • Groth16Verifier    │  │  • Dual Verification    │
+    └───────────────────────┘  └─────────────────────────┘
+```
+
+## View on Etherscan
+
+- [Main_Contract](https://sepolia.etherscan.io/address/0xb21AD25eC6d65d92C998c76a22b3f5Dce2F9F7CB)
+- [Groth16Verifier](https://sepolia.etherscan.io/address/0x99923435d5774c962dC5c604Ee9970748E9FD0E2)
+- [Groth16VerifierB](https://sepolia.etherscan.io/address/0x777B6C1bB0608621f8d2AAd364890267A4488Ce1)
+- [Burner_Verifier](https://sepolia.etherscan.io/address/0x8Da48CfBCFC981c0f4342D8c3e22cd5A5cB41eCE)
+- [Minter_Verifier](https://sepolia.etherscan.io/address/0x78CAb97E087b7696eE31e0cdDCA25AcaA568C237)
+
+## Circuits Overview
+
+Compile circuits:
+```bash
+cd circuits
+make
+```
+
+Verify constraints/proofs (where applicable):
+```bash
+make verify
+```
+### Circuit A: `update_balance.circom` (Burner/Sender Side)
+
+**Purpose:** Proves correct balance state transitions for burn/mint operations.
+
+**Inputs:**
+
+```circom
+signal input pub_balance;           // Current public balance
+signal input priv_balance;          // Current private balance
+signal input new_priv_balance;      // New private balance after operation
+signal input r;                     // Randomness for old commitment
+signal input r_new;                 // Randomness for new commitment
+signal input secret;                // User secret (nullifier preimage)
+```
+
+**Outputs (5 public signals):**
+
+```circom
+signal output old_commitment;       // Commit(priv_balance, r)
+signal output new_commitment;       // Commit(new_priv_balance, r_new)
+signal output curr_pub_balance;     // = pub_balance
+signal output new_priv_balance_out; // = new_priv_balance
+signal output nullifier;            // Hash(secret)
+```
+
+**Constraints:**
+
+- Old commitment = Poseidon(priv_balance, r)
+- New commitment = Poseidon(new_priv_balance, r_new)
+- Nullifier = Poseidon(secret)
+- All values properly constrained
+
+**Used by:** `Groth16Verifier` (deployed on-chain)
 
 ---
 
-## Core Protocol
+### Circuit B: `proofB.circom` (Minter/Receiver Side)
 
-### short summary
-- `noteC` binds Alice’s private-balance deduction to the note Bob can claim
-- `proof_A` proves Alice deducted `n` and posted `noteC` honestly
-- `proof_B` proves only recipient (holder of `pk_B`) can claim
-- `nullifier` ensures one-time use of notes
+**Purpose:** Validates transfer amounts using commitment scheme.
 
+**Inputs:**
 
+```circom
+signal input priv_balance;          // Current private balance
+signal input new_priv_balance;      // New private balance
+signal input r;                     // Randomness for old commitment
+signal input r_new;                 // Randomness for new commitment
+signal input amount;                // Transfer amount
+```
 
-### Phase 0: Preconditions
-- Alice & Bob have accounts with:
-  - `publicBalance`
-  - `PrivateCommitment`
-- Bob has encryption key `pk_B`
-- Alice ensures `Pb[A] + Pr[A] ≥ n`
+**Outputs (3 public signals):**
 
-### Phase 1: Alice Creates Note & Posts Commitment
+```circom
+signal output old_commitment;       // Commit(priv_balance, r)
+signal output new_commitment;       // Commit(new_priv_balance, r_new)
+signal output amount_hash;          // Poseidon(amount)
+```
 
-**Alice (off-chain):**
-- Creates `note = (n, pk_B, salt)`
-- Computes:
-  - `noteC = Commit(n, pk_B, salt)`
-  - `C_A' = Commit(Pr_A - n, rA')`
-  - Optional: `ct = Enc(pk_B, note || meta)`, `hct = Hash(ct)`
-- Generates `proof_A` proving:
-  - Correct commitments
-  - `noteC` is well-formed
-  - Non-negative post-transfer balance
+**Constraints:**
 
-**Alice (on-chain):**
-- Posts:
-  - `proof_A`
-  - `oldCommit = C_A`
-  - `newCommit = C_A'`
-  - `noteCommit = noteC`
-  - `hct` (optional ciphertext pointer)
-- Contract:
-  - Verifies `proof_A`
-  - Updates Alice’s commitment
-  - Records `noteC` in registry or emits a `NoteCreated` event
+- Old commitment = Poseidon(priv_balance, r)
+- New commitment = Poseidon(new_priv_balance, r_new)
+- Amount hash = Poseidon(amount)
+- Balance constraints enforced
 
+**Used by:** `Groth16VerifierB` (deployed on-chain)
 
-### Phase 2: Alice Sends Ciphertext to Bob (Off-Chain)
+---
 
-- Alice sends `ct` to Bob using a secure channel (e.g., wallet message, IPFS, Signal)
-- Bob decrypts to get `note` and verifies that `noteC = Commit(n, pk_B, salt)` matches the on-chain `noteC`
+## Security properties
+- Privacy: amount, sender, and receiver are not linkable on‑chain
+- Integrity: proofs enforce correct balance updates
+- Unlinkability: network‑level correlation reduced (no timing/IP linkage in protocol design)
+- One‑time spend: nullifiers prevent note reuse
 
+## Contributing
+Issues and PRs are welcome. If you’re proposing a protocol change, please include a short rationale and any security considerations.
 
-### Phase 3: Bob Claims the Note
+**Last Updated:** October 26, 2025  
+**Version:** 2.0-FINAL  
+**Repository:** https://github.com/IMPERIAL-X7/3zio
 
-**Bob (off-chain):**
-- Decrypts `ct` to get `note`
-- Builds `proof_B` proving:
-  - Knowledge of `n`, `salt`, `sk_B`
-  - Correct opening of `noteC`
-  - Ownership of `pk_B`
-  - Updated commitment `C_B' = Commit(Pr_B + n, rB')`
-  - Optional: outputs nullifier `N`
-
-**Bob (on-chain):**
-- Posts:
-  - `proof_B`
-  - `noteCommit = noteC`
-  - `oldCommit = C_B`
-  - `newCommit = C_B'`
-  - `nullifier = N`
-- Contract:
-  - Verifies `proof_B`
-  - Ensures note was not claimed before (`!consumed`)
-  - Marks note as claimed
-  - Updates Bob’s commitment
-  - Stores used `nullifier`
-
-## some failure modes
-- what if bob didnt claim the proof, (use refundable bonds)
-- bob should not be able to claim non existing proofs, created by himself
-- linkability, reveals IP/timming whuch can compromise with timmings
+## License
+MIT © 3zio contributors
 

@@ -1,0 +1,42 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-98ac0379360c26ac5fd024b9307572c814db71bc",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/main.sol": "project/contracts/main.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/data_types.sol": {
+        "content": "// SPDX-License-Identifier: GPL-3.0\npragma solidity >=0.7.0 <0.9.0;\n\nstruct balance_data {\n    uint256 pub_balance;\n    uint256 priv_balance;\n}\n\nstruct proof_data_A {\n    bool valid_rp;\n    uint256 new_priv_balance;\n    uint256 nullifier; //hash of pub,priv_balance(salt) + amt + r \n    uint256 amt_r_hash;\n    uint256 curr_priv_balance;\n    uint256 curr_pub_balance;\n}\n\nstruct proof_data_B{\n    uint256 old_pub_balance;\n    uint256 old_priv_balance;\n    uint256 updated_pub_balance;\n}\n\nstruct Proof{\n    uint256[2] A;\n    uint256[2][2] B;\n    uint256[2] C;\n    uint256[] _publicSignals; // pub. bal, old commitment, new commitment, amt_r_hash, nullifier\n}\n\nstruct ProofB{\n    uint256[2] A;\n    uint256[2][2] B;\n    uint256[2] C;\n    uint256[] _publicSignals; // old commitment, new commitment, amt_r_hash (3 signals for Circuit B)\n}"
+      },
+      "project/contracts/main.sol": {
+        "content": "// SPDX-License-Identifier: GPL-3.0\npragma solidity >=0.7.0 <0.9.0;\n\nimport \"./data_types.sol\";\n\ncontract Main_Contract{\n\n    mapping (address => balance_data) private balances;\n    address public burn_controller; // ConditionalBurner contract\n    address public mint_controller; // ConditionalMinter contract\n    address public owner;\n\n    // Set of uint256 values\n    mapping(uint256 => bool) private unminted_proofs;\n\n    constructor() {\n        owner = msg.sender;\n    }\n\n    modifier onlyOwner() {\n        require(msg.sender == owner, \"Not owner\");\n        _;\n    }\n\n    modifier onlyBurner() {\n        require(msg.sender == burn_controller, \"Not authorized\");\n        _;\n    }\n\n    modifier onlyMinter() {\n        require(msg.sender == mint_controller, \"Not authorized\");\n        _;        \n    }\n\n    function getbalance(address user) external view returns (balance_data memory) {\n        return balances[user];\n    }\n\n    // internal updater used by both the owner and the controller path\n    function _setbalance(address user, uint256 pub_balance, uint256 priv_balance) internal {\n        balances[user] = balance_data(pub_balance, priv_balance);\n    }\n\n    function burner(address user, uint256 curr_pub_balance, uint256 new_priv_balance, uint256 nullifier) external payable onlyBurner{\n        _setbalance(user, curr_pub_balance, new_priv_balance);\n        unminted_proofs[nullifier] = true;\n    }\n\n    function minter(address user, uint256 curr_pub_balance, uint256 new_priv_balance, uint256 nullifier) external payable onlyMinter{\n        require(unminted_proofs[nullifier], \"Proof already used\");\n        _setbalance(user, curr_pub_balance, new_priv_balance);\n        unminted_proofs[nullifier] = false;\n    }\n\n    // Setter functions for controllers\n    function setBurnController(address _controller) external onlyOwner {\n        burn_controller = _controller;\n    }\n\n    function setMintController(address _controller) external onlyOwner {\n        mint_controller = _controller;\n    }\n}"
+      }
+    }
+  }
+}
