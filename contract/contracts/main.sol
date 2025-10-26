@@ -51,4 +51,13 @@ contract Main_Contract{
         _setbalance(user, curr_pub_balance, new_priv_balance);
         unminted_proofs[nullifier] = false;
     }
+
+    // Setter functions for controllers
+    function setBurnController(address _controller) external onlyOwner {
+        burn_controller = _controller;
+    }
+
+    function setMintController(address _controller) external onlyOwner {
+        mint_controller = _controller;
+    }
 }

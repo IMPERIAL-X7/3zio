@@ -1,0 +1,93 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "deploymentDate": "2025-01-XX",
+  "deployer": "0xFb93a8DcD5edc3FB6Cb34d77C6811835756c99A0",
+  "rpcUrl": "https://ethereum-sepolia-rpc.publicnode.com",
+  "version": "2.0-FINAL",
+  "status": "OPERATIONAL",
+  "contracts": {
+    "MainContract": {
+      "address": "0xb21AD25eC6d65d92C998c76a22b3f5Dce2F9F7CB",
+      "etherscan": "https://sepolia.etherscan.io/address/0xb21AD25eC6d65d92C998c76a22b3f5Dce2F9F7CB",
+      "features": [
+        "Public/Private balance management",
+        "Nullifier tracking",
+        "Controller-based access control"
+      ],
+      "configuration": {
+        "burn_controller": "0x8Da48CfBCFC981c0f4342D8c3e22cd5A5cB41eCE",
+        "mint_controller": "0x78CAb97E087b7696eE31e0cdDCA25AcaA568C237",
+        "owner": "0xFb93a8DcD5edc3FB6Cb34d77C6811835756c99A0"
+      }
+    },
+    "Groth16Verifier": {
+      "address": "0x99923435d5774c962dC5c604Ee9970748E9FD0E2",
+      "etherscan": "https://sepolia.etherscan.io/address/0x99923435d5774c962dC5c604Ee9970748E9FD0E2",
+      "description": "Circuit A - update_balance.circom",
+      "publicSignals": 5,
+      "signals": [
+        "old_commitment",
+        "new_commitment",
+        "curr_pub_balance",
+        "new_priv_balance",
+        "nullifier"
+      ]
+    },
+    "Groth16VerifierB": {
+      "address": "0x777B6C1bB0608621f8d2AAd364890267A4488Ce1",
+      "etherscan": "https://sepolia.etherscan.io/address/0x777B6C1bB0608621f8d2AAd364890267A4488Ce1",
+      "description": "Circuit B - proofB.circom",
+      "publicSignals": 3,
+      "signals": [
+        "old_commitment",
+        "new_commitment",
+        "amount_hash"
+      ]
+    },
+    "BurnerVerifier": {
+      "address": "0x8Da48CfBCFC981c0f4342D8c3e22cd5A5cB41eCE",
+      "etherscan": "https://sepolia.etherscan.io/address/0x8Da48CfBCFC981c0f4342D8c3e22cd5A5cB41eCE",
+      "purpose": "Source chain burn operations with ZK verification",
+      "dependencies": {
+        "mainContract": "0xb21AD25eC6d65d92C998c76a22b3f5Dce2F9F7CB",
+        "verifier": "0x99923435d5774c962dC5c604Ee9970748E9FD0E2"
+      }
+    },
+    "MinterVerifier": {
+      "address": "0x78CAb97E087b7696eE31e0cdDCA25AcaA568C237",
+      "etherscan": "https://sepolia.etherscan.io/address/0x78CAb97E087b7696eE31e0cdDCA25AcaA568C237",
+      "purpose": "Destination chain mint operations with dual ZK verification",
+      "dependencies": {
+        "mainContract": "0xb21AD25eC6d65d92C998c76a22b3f5Dce2F9F7CB",
+        "verifierA": "0x99923435d5774c962dC5c604Ee9970748E9FD0E2",
+        "verifierB": "0x777B6C1bB0608621f8d2AAd364890267A4488Ce1"
+      }
+    }
+  },
+  "configuration_transactions": {
+    "setBurnController": {
+      "hash": "0x46e17158b4812742ca8ab53108fbcbb3906e7004f5287e83407a61989f1d107c",
+      "block": 9494195,
+      "value": "0x8Da48CfBCFC981c0f4342D8c3e22cd5A5cB41eCE"
+    },
+    "setMintController": {
+      "hash": "0x0ea9982853e97d8b70496efe91f2996f00b8ffad32c951b2f5ee64cab716e4d5",
+      "block": 9494200,
+      "value": "0x78CAb97E087b7696eE31e0cdDCA25AcaA568C237"
+    }
+  },
+  "testing": {
+    "phase1_basic_functionality": "PASSED",
+    "phase2_controller_setup": "PASSED",
+    "all_tests": [
+      "Owner verification",
+      "Balance queries",
+      "Burn controller configuration",
+      "Mint controller configuration",
+      "Burner_Verifier references",
+      "Minter_Verifier references"
+    ],
+    "test_results": "All 6 tests passed successfully"
+  }
+}

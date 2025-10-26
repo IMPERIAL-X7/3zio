@@ -1,0 +1,7 @@
+{
+  "MainModule#Groth16Verifier": "0x99923435d5774c962dC5c604Ee9970748E9FD0E2",
+  "MainModule#Groth16VerifierB": "0x777B6C1bB0608621f8d2AAd364890267A4488Ce1",
+  "MainModule#Main_Contract": "0xb21AD25eC6d65d92C998c76a22b3f5Dce2F9F7CB",
+  "MainModule#Burner_Verifier": "0x8Da48CfBCFC981c0f4342D8c3e22cd5A5cB41eCE",
+  "MainModule#Minter_Verifier": "0x78CAb97E087b7696eE31e0cdDCA25AcaA568C237"
+}
