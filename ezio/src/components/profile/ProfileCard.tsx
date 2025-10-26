@@ -56,11 +56,26 @@ const ProfileCard = () => {
       hash,
     });
 
+  // Generate deterministic randomness based on user's address
+  const generateRandomnessFromAddress = async (address: string) => {
+    // Use the address to generate deterministic randomness
+    const encoder = new TextEncoder();
+    const data = encoder.encode(address + "randomness-seed");
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const randomnessHex = hashArray
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+      .substring(0, 13); // Take first 13 characters to match the original format
+    return randomnessHex;
+  };
+
   // Generate SHA256 hash with randomness
-  const generatePrivateBalanceHash = async (balance: string) => {
-    const random = Math.random().toString(36).substring(2, 15);
-    setRandomness(random);
-    const dataToHash = `${balance}-${random}`;
+  const generatePrivateBalanceHash = async (
+    balance: string,
+    randomness: string
+  ) => {
+    const dataToHash = `${balance}-${randomness}`;
     const encoder = new TextEncoder();
     const data = encoder.encode(dataToHash);
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -86,14 +101,25 @@ const ProfileCard = () => {
       const privBalance = "10.00";
       setPrivateBalance(privBalance);
 
-      const hash = await generatePrivateBalanceHash(privBalance);
-      setPrivateBalanceHash(hash);
+      // Generate deterministic randomness based on user's address
+      if (address) {
+        const deterministicRandomness = await generateRandomnessFromAddress(
+          address
+        );
+        setRandomness(deterministicRandomness);
+
+        const hash = await generatePrivateBalanceHash(
+          privBalance,
+          deterministicRandomness
+        );
+        setPrivateBalanceHash(hash);
+      }
     };
 
-    if (isConnected) {
+    if (isConnected && address) {
       initBalances();
     }
-  }, [balanceData, isConnected]);
+  }, [balanceData, isConnected, address]);
 
   // Placeholder handlers - to be implemented later
   const handleSend = () => {
