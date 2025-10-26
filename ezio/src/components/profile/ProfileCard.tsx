@@ -20,15 +20,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DollarSign, Copy, Send, Lock, Unlock } from "lucide-react";
 import { useEffect, useState } from "react";
+import {
+  useAccount,
+  useBalance,
+  useSendTransaction,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+import { parseEther, formatEther } from "viem";
+import { sepolia } from "wagmi/chains";
 
 const ProfileCard = () => {
   const { nexusSDK } = useNexus();
+  const { address, isConnected, chain } = useAccount();
+  const { data: balanceData } = useBalance({
+    address: address,
+    chainId: sepolia.id,
+  });
+
   const [publicBalance, setPublicBalance] = useState<string>("0.00");
-  const [privateBalance, setPrivateBalance] = useState<string>("0.00");
+  const [privateBalance, setPrivateBalance] = useState<string>("10.00"); // Hardcoded 10 ETH
   const [privateBalanceHash, setPrivateBalanceHash] = useState<string>("");
   const [randomness, setRandomness] = useState<string>("");
   const [showSendDialog, setShowSendDialog] = useState<boolean>(false);
   const [sendAmount, setSendAmount] = useState<string>("");
+  const [recipientAddress, setRecipientAddress] = useState<string>("");
+  const [isSending, setIsSending] = useState<boolean>(false);
+
+  const {
+    data: hash,
+    sendTransaction,
+    isPending: isTransactionPending,
+  } = useSendTransaction();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
 
   // Generate SHA256 hash with randomness
   const generatePrivateBalanceHash = async (balance: string) => {
@@ -45,37 +71,68 @@ const ProfileCard = () => {
     return hashHex;
   };
 
-  // Initialize balances (placeholder values for now)
+  // Initialize balances from MetaMask
   useEffect(() => {
-    // Simulate getting balances
     const initBalances = async () => {
-      const pubBalance = "125.50";
-      const privBalance = "89.75";
+      // Set public balance from actual wallet balance
+      if (balanceData) {
+        const balance = formatEther(balanceData.value);
+        setPublicBalance(parseFloat(balance).toFixed(4));
+      } else {
+        setPublicBalance("0.00");
+      }
 
-      setPublicBalance(pubBalance);
+      // Private balance is hardcoded to 10 ETH
+      const privBalance = "10.00";
       setPrivateBalance(privBalance);
 
       const hash = await generatePrivateBalanceHash(privBalance);
       setPrivateBalanceHash(hash);
     };
 
-    initBalances();
-  }, []);
+    if (isConnected) {
+      initBalances();
+    }
+  }, [balanceData, isConnected]);
 
   // Placeholder handlers - to be implemented later
   const handleSend = () => {
     setSendAmount(""); // Reset amount when opening dialog
+    setRecipientAddress(""); // Reset recipient address
     setShowSendDialog(true);
   };
 
-  const handlePublicSend = () => {
-    console.log("Public send clicked - functionality to be implemented");
-    console.log("Amount:", sendAmount);
-    console.log("Public Balance:", publicBalance);
-    // Close dialog after action
-    setShowSendDialog(false);
-    setSendAmount("");
+  const handlePublicSend = async () => {
+    if (!recipientAddress || !sendAmount || !isConnected) {
+      console.error("Missing required fields or wallet not connected");
+      return;
+    }
+
+    try {
+      setIsSending(true);
+
+      // Send the transaction
+      sendTransaction({
+        to: recipientAddress as `0x${string}`,
+        value: parseEther(sendAmount),
+        chainId: sepolia.id,
+      });
+    } catch (error) {
+      console.error("Transaction failed:", error);
+      setIsSending(false);
+    }
   };
+
+  // Handle transaction confirmation
+  useEffect(() => {
+    if (isConfirmed) {
+      console.log("Transaction confirmed:", hash);
+      setShowSendDialog(false);
+      setSendAmount("");
+      setRecipientAddress("");
+      setIsSending(false);
+    }
+  }, [isConfirmed, hash]);
 
   const handlePrivateSend = () => {
     console.log("Private send clicked - functionality to be implemented");
@@ -97,12 +154,41 @@ const ProfileCard = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto z-10 space-y-6">
+      {/* Wallet Connection Notice */}
+      {!isConnected && (
+        <Card className="border-yellow-500 bg-yellow-50">
+          <CardContent className="pt-6">
+            <p className="text-sm text-center">
+              Please connect your wallet to view your balance and make
+              transactions.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Wrong Network Notice */}
+      {isConnected && chain?.id !== sepolia.id && (
+        <Card className="border-red-500 bg-red-50">
+          <CardContent className="pt-6">
+            <p className="text-sm text-center text-red-700">
+              Please switch to Sepolia testnet to use this app. Current network:{" "}
+              {chain?.name || "Unknown"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Profile Card */}
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl">Account Overview</CardTitle>
           <CardDescription>
             View your public and private balances
+            {isConnected && address && (
+              <span className="block mt-1 font-mono text-xs">
+                Connected: {address.slice(0, 6)}...{address.slice(-4)}
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -117,11 +203,13 @@ const ProfileCard = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
-                  <DollarSign className="w-6 h-6 text-primary" />
                   <span className="text-3xl font-bold">{publicBalance}</span>
+                  <span className="text-xl font-semibold text-muted-foreground">
+                    ETH
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Available across all chains
+                  Available on Sepolia testnet
                 </p>
               </CardContent>
             </Card>
@@ -136,8 +224,10 @@ const ProfileCard = () => {
               <CardContent className="space-y-3">
                 {/* Balance Display */}
                 <div className="flex items-center gap-2">
-                  <DollarSign className="w-6 h-6 text-primary" />
                   <span className="text-3xl font-bold">{privateBalance}</span>
+                  <span className="text-xl font-semibold text-muted-foreground">
+                    ETH
+                  </span>
                 </div>
 
                 {/* Randomness */}
@@ -230,22 +320,30 @@ const ProfileCard = () => {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Recipient Address Input */}
+            <div className="space-y-2">
+              <Label htmlFor="recipient">Recipient Address</Label>
+              <Input
+                id="recipient"
+                type="text"
+                placeholder="0x..."
+                value={recipientAddress}
+                onChange={(e) => setRecipientAddress(e.target.value)}
+              />
+            </div>
+
             {/* Amount Input */}
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount</Label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="amount"
-                  type="number"
-                  placeholder="0.00"
-                  value={sendAmount}
-                  onChange={(e) => setSendAmount(e.target.value)}
-                  className="pl-9"
-                  step="0.01"
-                  min="0"
-                />
-              </div>
+              <Label htmlFor="amount">Amount (ETH)</Label>
+              <Input
+                id="amount"
+                type="number"
+                placeholder="0.0"
+                value={sendAmount}
+                onChange={(e) => setSendAmount(e.target.value)}
+                step="0.0001"
+                min="0"
+              />
             </div>
 
             {/* Public Send Option */}
@@ -271,16 +369,29 @@ const ProfileCard = () => {
                       Available Balance:
                     </span>
                     <div className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4" />
-                      <span className="font-bold">
-                        {publicBalance + privateBalance}
-                      </span>
+                      <span className="font-bold">{publicBalance} ETH</span>
                     </div>
                   </div>
 
-                  <Button onClick={handlePublicSend} className="w-full">
-                    <Send className="h-4 w-4 mr-2" />
-                    Public Send
+                  <Button
+                    onClick={handlePublicSend}
+                    className="w-full"
+                    disabled={
+                      !recipientAddress ||
+                      !sendAmount ||
+                      isTransactionPending ||
+                      isConfirming ||
+                      isSending
+                    }
+                  >
+                    {isTransactionPending || isConfirming || isSending ? (
+                      <>Sending...</>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Public Send
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
@@ -309,10 +420,7 @@ const ProfileCard = () => {
                       Available Balance:
                     </span>
                     <div className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4" />
-                      <span className="font-bold">
-                        {privateBalance + publicBalance}
-                      </span>
+                      <span className="font-bold">{privateBalance} ETH</span>
                     </div>
                   </div>
 
@@ -320,9 +428,10 @@ const ProfileCard = () => {
                     onClick={handlePrivateSend}
                     variant="outline"
                     className="w-full"
+                    disabled
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    Private Send
+                    Private Send (Coming Soon)
                   </Button>
                 </div>
               </CardContent>
