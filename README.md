@@ -80,5 +80,5 @@
 ## some failure modes
 - what if bob didnt claim the proof, (use refundable bonds)
 - bob should not be able to claim non existing proofs, created by himself
-- linkability, reveals IP/timming whuch can compromise with timmings.
+- linkability, reveals IP/timming whuch can compromise with timmings
 
